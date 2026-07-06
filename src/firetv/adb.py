@@ -78,6 +78,10 @@ class FireTVClient:
             keygen(str(self._key_path))
         return FireTVSync(self._host, self._port, adbkey=str(self._key_path))
 
+    def _note_connect_failure(self, now: float) -> None:
+        self._next_connect_at = now + self._backoff
+        self._backoff = min(self._backoff * 2, RECONNECT_MAX_S)
+
     def _ensure_connected(self) -> None:
         if self._tv is None:
             self._tv = self._build_tv()
@@ -87,12 +91,16 @@ class FireTVClient:
         if now < self._next_connect_at:
             raise ConnectionError("backing off before reconnect")
         try:
-            self._tv.adb_connect(auth_timeout_s=10.0)
-            self._backoff = RECONNECT_MIN_S
+            # androidtv's ADBPythonSync.connect() catches exceptions internally
+            # and returns a bool, so a False return is a failure too.
+            ok = self._tv.adb_connect(auth_timeout_s=10.0)
         except Exception:
-            self._next_connect_at = now + self._backoff
-            self._backoff = min(self._backoff * 2, RECONNECT_MAX_S)
+            self._note_connect_failure(now)
             raise
+        if not ok or not getattr(self._tv, "available", False):
+            self._note_connect_failure(now)
+            raise ConnectionError("adb connect failed")
+        self._backoff = RECONNECT_MIN_S
 
     def _run(self, label: str, fn):
         """connect -> fn(); on failure reconnect once and retry; else drop."""

@@ -1,3 +1,5 @@
+import logging
+import time
 from pathlib import Path
 
 import pytest
@@ -95,4 +97,41 @@ def test_shell_failure_twice_is_dropped(client):
     c, fake = client
     fake.fail_next_shell = 2
     c.send_key("UP")  # both attempts fail -> dropped, no raise
+    assert fake.shell_calls == []
+
+
+class DownTV(FakeTV):
+    """FakeTV whose adb_connect reports failure (returns False, stays unavailable),
+    matching androidtv's ADBPythonSync.connect(), which never raises."""
+
+    def __init__(self):
+        super().__init__()
+        self.available = False
+
+    def adb_connect(self, auth_timeout_s=10.0):
+        self.connect_calls += 1
+        return False
+
+
+def test_connect_false_engages_backoff(tmp_path: Path, caplog):
+    fake = DownTV()
+    c = FireTVClient("192.0.2.1", 5555, tmp_path / "adbkey", tv=fake)
+    with caplog.at_level(logging.WARNING, logger="firetv.adb"):
+        c.send_key("UP")  # must not raise
+    assert fake.shell_calls == []  # command dropped, never reached the shell
+    assert any("keyevent UP failed" in r.getMessage() for r in caplog.records)
+    assert c._backoff == 10  # doubled from RECONNECT_MIN_S after one failure
+    assert c._next_connect_at > time.monotonic()
+
+
+def test_backoff_gates_reconnect_attempts(tmp_path: Path):
+    fake = DownTV()
+    c = FireTVClient("192.0.2.1", 5555, tmp_path / "adbkey", tv=fake)
+    c.send_key("UP")
+    # First call: attempt 1 tries adb_connect (fails, opens backoff window);
+    # attempt 2 lands inside the window and is gated before connecting.
+    calls_after_first = fake.connect_calls
+    assert calls_after_first == 1
+    c.send_key("UP")  # entirely within the backoff window
+    assert fake.connect_calls == calls_after_first  # no new adb_connect
     assert fake.shell_calls == []
