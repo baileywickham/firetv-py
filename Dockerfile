@@ -1,5 +1,8 @@
 FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
 
+# Links the ghcr package to the repo (visibility, README, provenance)
+LABEL org.opencontainers.image.source=https://github.com/baileywickham/firetv-py
+
 ENV UV_LINK_MODE=copy \
     UV_COMPILE_BYTECODE=1 \
     UV_PYTHON_DOWNLOADS=never \
