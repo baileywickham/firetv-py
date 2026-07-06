@@ -22,7 +22,7 @@ def main() -> int:
     cfg = Config.from_env()
     cfg.state_dir.mkdir(parents=True, exist_ok=True)
 
-    client = FireTVClient(cfg.host, cfg.port, cfg.state_dir / "adbkey")
+    client = FireTVClient(cfg.host, cfg.port, cfg.state_dir / "adbkey", key_mode=cfg.key_mode)
     first = client.status()
     log.info("initial TV status: %s (accessory publishes regardless)", first)
 

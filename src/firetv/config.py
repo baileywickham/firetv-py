@@ -13,6 +13,8 @@ DEFAULT_INPUTS = (
     "Fire TV=HOME,HDMI 1=HDMI1,HDMI 2=HDMI2,HDMI 3=HDMI3,HDMI 4=HDMI4"
 )
 
+VALID_KEY_MODES = {"auto", "sendevent", "keyevent"}
+
 
 def parse_inputs(s: str) -> list[tuple[str, str]]:
     """Parse ``label=command`` pairs from a comma-separated string."""
@@ -34,12 +36,19 @@ class Config:
     state_dir: Path
     hap_port: int
     poll_seconds: int
+    key_mode: str
 
     @classmethod
     def from_env(cls) -> "Config":
         host = os.environ.get("FIRETV_HOST")
         if not host:
             raise SystemExit("error: FIRETV_HOST is required (the TV's IP address)")
+        key_mode = os.environ.get("FIRETV_KEY_MODE", "auto")
+        if key_mode not in VALID_KEY_MODES:
+            raise SystemExit(
+                f"error: FIRETV_KEY_MODE={key_mode!r} invalid, "
+                f"must be one of {sorted(VALID_KEY_MODES)}"
+            )
         return cls(
             host=host,
             port=int(os.environ.get("FIRETV_PORT", "5555")),
@@ -50,4 +59,5 @@ class Config:
             ).expanduser(),
             hap_port=int(os.environ.get("FIRETV_HAP_PORT", "51828")),
             poll_seconds=int(os.environ.get("FIRETV_POLL_SECONDS", "15")),
+            key_mode=key_mode,
         )

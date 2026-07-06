@@ -34,9 +34,26 @@ def test_from_env_defaults(monkeypatch, tmp_path):
     assert cfg.inputs == parse_inputs(DEFAULT_INPUTS)
     assert cfg.inputs[0] == ("Fire TV", "HOME")
     assert len(cfg.inputs) == 5
+    assert cfg.key_mode == "auto"
 
 
 def test_from_env_requires_host(monkeypatch):
     monkeypatch.delenv("FIRETV_HOST", raising=False)
     with pytest.raises(SystemExit):
         Config.from_env()
+
+
+def test_from_env_key_mode_invalid_exits(monkeypatch, tmp_path):
+    monkeypatch.setenv("FIRETV_HOST", "10.0.0.5")
+    monkeypatch.setenv("FIRETV_STATE_DIR", str(tmp_path))
+    monkeypatch.setenv("FIRETV_KEY_MODE", "bogus")
+    with pytest.raises(SystemExit, match="FIRETV_KEY_MODE"):
+        Config.from_env()
+
+
+def test_from_env_key_mode_explicit_keyevent(monkeypatch, tmp_path):
+    monkeypatch.setenv("FIRETV_HOST", "10.0.0.5")
+    monkeypatch.setenv("FIRETV_STATE_DIR", str(tmp_path))
+    monkeypatch.setenv("FIRETV_KEY_MODE", "keyevent")
+    cfg = Config.from_env()
+    assert cfg.key_mode == "keyevent"
