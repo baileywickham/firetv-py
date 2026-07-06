@@ -70,7 +70,6 @@ class FireTVClient:
 
     def _build_tv(self):
         from adb_shell.auth.keygen import keygen
-        from androidtv.setup_async import setup as _  # noqa: F401 (force lazy import check)
         from androidtv.firetv.firetv_sync import FireTVSync
 
         self._key_path.parent.mkdir(parents=True, exist_ok=True)
