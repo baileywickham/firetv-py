@@ -41,6 +41,7 @@ stdout; add it in the iOS Home app. TV accessories are published standalone
 | `FIRETV_HAP_PORT` | `51828` | HAP listen port |
 | `FIRETV_POLL_SECONDS` | `15` | state poll interval |
 | `FIRETV_LOG_LEVEL` | `INFO` | logging level |
+| `FIRETV_KEY_MODE` | `auto` | key injection: sendevent fast path w/ fallback (auto), sendevent, or keyevent |
 
 ## Container
 
@@ -61,6 +62,11 @@ host network), a small PVC mounted at `/data`, and `strategy: Recreate`
 - The TV doesn't report absolute volume over ADB — volume is up/down/mute
   only (which is all the Control Center remote needs).
 - Text entry from the iOS keyboard is not part of HomeKit's TV profile.
-- Each key press costs ~1s on the TV side (Fire OS spawns a fresh `input`
-  process per injected keyevent) — fine for play/pause and menus, sluggish
-  for long scrolls. This is inherent to ADB remotes, not this bridge.
+- Each `input keyevent` press costs ~1s on the TV side (Fire OS spawns a
+  fresh `input` process per injected keyevent). The `sendevent` fast path
+  (`FIRETV_KEY_MODE=auto`, the default) writes raw Linux input events
+  directly to the TV's input device instead, bringing nav/volume presses to
+  ~0.2s on supported panels, with automatic fallback to `input keyevent` if
+  no suitable input device can be found. Power and input switching
+  (HOME/HDMI/WAKEUP/SLEEP) always go through `input keyevent` since they're
+  latency-insensitive and must be maximally reliable.
