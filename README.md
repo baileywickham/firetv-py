@@ -49,8 +49,10 @@ docker build -t firetv-py .
 docker run -e FIRETV_HOST=<tv-ip> -v firetv-state:/data --network host firetv-py
 ```
 
-Host networking is required for HomeKit mDNS. A k3s deployment example
-(hostNetwork, PVC, single replica) lives in the author's homelab repo.
+Host networking is required for HomeKit mDNS. For Kubernetes, run it as a
+single-replica Deployment with `hostNetwork: true` (HomeKit mDNS needs the
+host network), a small PVC mounted at `/data`, and `strategy: Recreate`
+(one HomeKit identity at a time).
 
 ## Known limitations
 
