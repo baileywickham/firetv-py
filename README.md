@@ -62,6 +62,16 @@ host network), a small PVC mounted at `/data`, and `strategy: Recreate`
 - The TV doesn't report absolute volume over ADB — volume is up/down/mute
   only (which is all the Control Center remote needs).
 - Text entry from the iOS keyboard is not part of HomeKit's TV profile.
+- **Wake-from-standby needs the TV's network to stay up while asleep.** Fire
+  TV panels drop into a deep Low Power Mode ~15 minutes after sleeping, which
+  kills adbd and makes HomeKit power-on impossible until the TV is woken
+  another way. Amazon provides no direct toggle, but enabling
+  **Settings → Display & Sound → Power Controls → "Voice Commands When TV
+  Screen is Off"** (a.k.a. Alexa Anytime, Omni panels) keeps the network
+  stack alive in standby — verified reachable for 35+ minutes of sleep on an
+  Omni QLED with the setting on, vs. ~15 minutes without. Costs a few watts
+  and a hot microphone; the bridge otherwise reconnects automatically
+  whenever the TV comes back.
 - Each `input keyevent` press costs ~1s on the TV side (Fire OS spawns a
   fresh `input` process per injected keyevent). The `sendevent` fast path
   (`FIRETV_KEY_MODE=auto`, the default) writes raw Linux input events
