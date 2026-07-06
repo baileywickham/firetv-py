@@ -13,7 +13,7 @@ class FakeTV:
         self.shell_calls: list[str] = []
         self.connect_calls = 0
         self.fail_next_shell = 0  # raise on this many upcoming adb_shell calls
-        self.update_result = ("playing", "com.amazon.tv.launcher", [])
+        self.update_result = ("playing", "com.amazon.tv.launcher", [], None)
 
     def adb_connect(self, auth_timeout_s=10.0):
         self.connect_calls += 1
@@ -75,11 +75,11 @@ def test_set_input_hdmi_and_home(client):
 
 def test_status_maps_state_and_app(client):
     c, fake = client
-    fake.update_result = ("idle", "com.amazon.tv.launcher", [])
+    fake.update_result = ("idle", "com.amazon.tv.launcher", [], None)
     assert c.status() == TVStatus(power=True, hdmi=False)
-    fake.update_result = ("playing", "com.amazon.tv.inputpreference.service", [])
+    fake.update_result = ("playing", "com.amazon.tv.inputpreference.service", [], "HW4")
     assert c.status() == TVStatus(power=True, hdmi=True)
-    fake.update_result = ("off", "", [])
+    fake.update_result = ("off", "", [], None)
     assert c.status() == TVStatus(power=False, hdmi=False)
 
 

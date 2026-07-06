@@ -129,7 +129,7 @@ class FireTVClient:
 
     def status(self) -> TVStatus | None:
         def _update():
-            state, current_app, _running = self._tv.update()
+            state, current_app, *_rest = self._tv.update()
             power = state not in OFF_STATES
             app = current_app or ""
             hdmi = power and any(m in app for m in HDMI_APP_MARKERS)
