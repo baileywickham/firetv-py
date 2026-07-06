@@ -119,6 +119,9 @@ class FireTVAccessory(Accessory):
         self.client.power(bool(value))
 
     def _set_input(self, identifier: int) -> None:
+        if identifier < 1:
+            log.warning("input identifier %s out of range", identifier)
+            return
         try:
             _label, command = self.inputs[identifier - 1]
         except IndexError:
@@ -141,14 +144,22 @@ class FireTVAccessory(Accessory):
 
     # -- TV -> HomeKit (poll loop) ---------------------------------------------
 
-    @Accessory.run_at_interval(15)
     async def run(self) -> None:
-        """Mirror TV state into HomeKit. Must never raise: an exception here
-        kills the interval task permanently and freezes HomeKit at stale state."""
+        """Poll the TV every poll_seconds and mirror state into HomeKit.
+
+        Never raises: an escaping exception would kill the task and freeze
+        HomeKit at stale state.
+        """
+        from pyhap.util import event_wait
+
+        while not await event_wait(self.driver.aio_stop_event, self._poll_seconds):
+            self._poll_once()
+
+    def _poll_once(self) -> None:
         try:
             status = self.client.status()
             if status is None:
-                self.char_active.set_value(0)  # unreachable -> off (spec: adbd stops when TV sleeps)
+                self.char_active.set_value(0)  # unreachable -> off (adbd stops when TV sleeps)
                 return
             self.char_active.set_value(1 if status.power else 0)
             if status.power:
