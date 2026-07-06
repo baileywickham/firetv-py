@@ -10,12 +10,12 @@ WORKDIR /app
 
 # Install dependencies first (cached when source changes)
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-install-project
+RUN uv sync --frozen --no-install-project --no-dev
 
 # Then install the project
 COPY src ./src
 COPY README.md ./README.md
-RUN uv sync --frozen
+RUN uv sync --frozen --no-dev
 
 # Persistent state directory (mount a PVC here)
 RUN mkdir -p /data
